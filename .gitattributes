@@ -1,0 +1,27 @@
+# 换行符规范化（Windows 开发 + 跨平台协作）
+* text=auto
+
+# Windows 批处理必须为 CRLF，否则中文 GBK 内容会被 cmd 逐行解析错乱
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# 源码 / 文档统一 LF
+*.py   text eol=lf
+*.md   text eol=lf
+*.html text eol=lf
+*.css  text eol=lf
+*.js   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.txt  text eol=lf
+
+# 二进制资源（禁止任何转换）
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.db   binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary

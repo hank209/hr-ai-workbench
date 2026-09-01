@@ -1,0 +1,56 @@
+# ----- Python -----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
+
+# ----- 运行时与内嵌运行时 -----
+# runtime/ 为内嵌 CPython 解释器（build/download_runtime.py 拉取），不进仓库
+runtime/
+# templates_source/ 为空占位
+templates_source/
+
+# ----- 数据：SQLite 库 + 备份 + 简历样本 + 运行日志 + 业务附件 -----
+data/hr.db
+data/hr.db-shm
+data/hr.db-wal
+data/backups/
+data/logs/
+data/resumes/
+data/exports/
+data/uploads/
+data/knowledge/
+
+# ----- 私人工作记忆（不进仓库） -----
+.workbuddy/
+
+# ----- 环境 -----
+.env
+.env.local
+.venv/
+venv/
+env/
+
+# ----- 系统与编辑器 -----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ----- 临时 / 构建 ----
+*.log
+*.tmp
+*.bak
+build/dist/
+build/build/
+build/__pycache__/
+
+# ----- 设计方案（按项目约定不上传） -----
+docs/人事AI工作台-设计方案-v1.0.md
+docs/人事AI工作台-设计方案-v2.0-本机绿色版.md
+docs/人事AI工作台-第一期实施方案-专员工作台.md

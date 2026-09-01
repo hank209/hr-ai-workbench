@@ -1,0 +1,22 @@
+server:
+  host: 127.0.0.1
+  port: 5270
+  auto_open_browser: true
+  access_password: ''
+database:
+  path: data/hr.db
+  wal: true
+  backup_on_start: true
+  backup_keep: 7
+reminder:
+  contract_expire:
+  - 60
+  - 30
+  - 7
+  contract_2nd_expire: 90
+  probation_expire:
+  - 15
+  - 7
+knowledge:
+  fts_tokenizer: trigram
+  chunk_by_article: true

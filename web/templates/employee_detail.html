@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+{% block title %}{{ e.name }} - 员工档案{% endblock %}
+{% block page_title %}员工档案 · {{ e.name }}{% endblock %}
+{% block content %}
+
+<div class="panel">
+  <div class="panel-head">
+    <h3>{{ e.name }} <span class="badge {{ 'badge-success' if e.status=='在职' else ('badge-medium' if e.status=='试用' else 'badge-danger') }}">{{ e.status }}</span></h3>
+    <div class="row-gap">
+      <a class="btn btn-sm" href="/employees">返回列表</a>
+      <button class="btn btn-sm btn-primary" onclick="document.getElementById('editEmp').style.display='block'">编辑档案</button>
+      <button class="btn btn-sm btn-danger" hx-post="/api/employee/{{ e.id }}/delete" hx-confirm="删除 {{ e.name }} 的档案？" hx-target="body" hx-swap="outerHTML">删除</button>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card"><div class="label">部门 / 岗位</div><div class="num small-num">{{ e.department or '-' }} / {{ e.position or '-' }}</div></div>
+    <div class="card"><div class="label">入职日期</div><div class="num small-num">{{ e.hire_date or '-' }}</div></div>
+    <div class="card"><div class="label">试用期到期</div><div class="num small-num {{ 'warn' if e.probation_end else '' }}">{{ e.probation_end or '-' }}</div></div>
+    <div class="card"><div class="label">手机 / 邮箱</div><div class="num small-num">{{ e.phone or '-' }}<br>{{ e.email or '-' }}</div></div>
+  </div>
+
+  <div id="editEmp" style="display:none" class="mt">
+    <form class="form-grid" hx-post="/api/employee/{{ e.id }}/update" hx-target="body" hx-swap="outerHTML">
+      <div class="form-item"><label>工号</label><input name="emp_no" value="{{ e.emp_no }}"></div>
+      <div class="form-item"><label>姓名 *</label><input name="name" required value="{{ e.name }}"></div>
+      <div class="form-item"><label>性别</label><select name="gender"><option {{ 'selected' if e.gender=='男' }}>男</option><option {{ 'selected' if e.gender=='女' }}>女</option><option {{ 'selected' if e.gender=='未知' }}>未知</option></select></div>
+      <div class="form-item"><label>出生日期</label><input name="birth_date" type="date" value="{{ e.birth_date or '' }}"></div>
+      <div class="form-item"><label>手机</label><input name="phone" value="{{ e.phone }}"></div>
+      <div class="form-item"><label>邮箱</label><input name="email" value="{{ e.email }}"></div>
+      <div class="form-item"><label>部门</label><input name="department" value="{{ e.department }}"></div>
+      <div class="form-item"><label>岗位</label><input name="position" value="{{ e.position }}"></div>
+      <div class="form-item"><label>入职日期</label><input name="hire_date" type="date" value="{{ e.hire_date or '' }}"></div>
+      <div class="form-item"><label>试用期到期</label><input name="probation_end" type="date" value="{{ e.probation_end or '' }}"></div>
+      <div class="form-item"><label>状态</label><select name="status"><option value="在职" {{ 'selected' if e.status=='在职' }}>在职</option><option value="试用" {{ 'selected' if e.status=='试用' }}>试用</option><option value="已离职" {{ 'selected' if e.status=='已离职' }}>已离职</option></select></div>
+      <div class="form-item"><label>学历</label><input name="education" value="{{ e.education }}"></div>
+      <div class="form-item"><label>身份证（留空则不修改）</label><input name="id_card" value="" placeholder="已录入，留空保持不变"></div>
+      <div class="form-item"><label>银行卡（留空则不修改）</label><input name="bank_card" value="" placeholder="已录入，留空保持不变"></div>
+      <div class="form-item"><label>备注</label><input name="note" value="{{ e.note }}"></div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">保存</button>
+        <button class="btn" type="button" onclick="document.getElementById('editEmp').style.display='none'">取消</button></div>
+    </form>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h4 class="sec-title">档案信息（敏感字段默认掩码）</h4>
+      <table class="detail-table">
+        <tbody>
+        <tr><td>出生日期</td><td>{{ e.birth_date or '-' }}</td></tr>
+        <tr><td>性别</td><td>{{ e.gender }}</td></tr>
+        <tr><td>学历</td><td>{{ e.education or '-' }}</td></tr>
+        <tr><td>身份证</td><td>{{ mask(e.id_card) or '-' }}</td></tr>
+        <tr><td>银行卡</td><td>{{ mask(e.bank_card) or '-' }}</td></tr>
+        <tr><td>备注</td><td>{{ e.note or '-' }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <h4 class="sec-title">异动时间轴</h4>
+      <form class="form-grid" hx-post="/api/employee/{{ e.id }}/event" hx-target="body" hx-swap="outerHTML">
+        <div class="form-item"><label>异动类型</label>
+          <select name="event_type"><option>入职</option><option>转正</option><option>调岗</option><option>调薪</option><option>离职</option><option>其他</option></select></div>
+        <div class="form-item"><label>日期</label><input name="event_date" type="date" value="{{ now.date() }}"></div>
+        <div class="form-item" style="grid-column:1/-1"><label>说明</label><input name="detail" placeholder="如：调岗至产品中心，任产品经理"></div>
+        <div class="form-actions"><button class="btn btn-sm btn-primary" type="submit">添加异动</button></div>
+      </form>
+      <div class="mt">
+        {% for ev in events %}
+        <div class="ev-row">
+          <span class="badge badge-medium">{{ ev.event_type }}</span>
+          <span class="ev-date">{{ ev.event_date or '' }}</span>
+          <span class="muted">{{ ev.detail }}</span>
+          <button class="btn btn-sm" style="margin-left:auto" hx-post="/api/employee/event/{{ ev.id }}/delete" hx-confirm="删除该记录？" hx-target="body" hx-swap="outerHTML">删</button>
+        </div>
+        {% else %}
+        <div class="empty">暂无异动记录。入职/转正/调岗/调薪/离职都记录在这里，形成员工时间轴。</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

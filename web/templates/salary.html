@@ -1,0 +1,69 @@
+{% extends "layout.html" %}
+{% block title %}工资答疑 - 人事工作台{% endblock %}
+{% block page_title %}工资答疑助手{% endblock %}
+{% block content %}
+
+<div class="panel">
+  <div class="panel-head"><h3>导入工资明细（Excel）</h3></div>
+  <div class="warn-note">每月发薪后导入工资表，员工问「为什么工资少了」时，按 姓名+月份 直接查到逐项明细，结合常见差异原因给出解释。</div>
+  <div class="row-gap">
+    <a class="btn" href="/api/salary/template">下载导入模板</a>
+    <form style="display:inline" hx-post="/api/salary/import" hx-target="body" hx-swap="outerHTML" enctype="multipart/form-data">
+      <input type="file" name="file" accept=".xlsx" style="display:none" id="salFile" onchange="this.form.requestSubmit()">
+      <button class="btn btn-primary" type="button" onclick="document.getElementById('salFile').click()">选择 Excel 导入</button>
+    </form>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <h3>明细查询</h3>
+    <div class="row-gap">
+      <select class="input" style="width:150px" onchange="location.href='/salary?month='+this.value+'&emp={{ emp }}'">
+        <option value="">全部月份</option>
+        {% for m in months %}<option value="{{ m }}" {{ 'selected' if month==m else '' }}>{{ m }}</option>{% endfor %}
+      </select>
+      <select class="input" style="width:150px" onchange="location.href='/salary?emp='+this.value+'&month={{ month }}'">
+        <option value="">全部员工</option>
+        {% for n in names %}<option value="{{ n }}" {{ 'selected' if emp==n else '' }}>{{ n }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+
+  {% if records %}
+  <table>
+    <thead><tr><th>月份</th><th>姓名</th><th>基本工资</th><th>绩效</th><th>补贴</th><th>加班费</th><th>社保</th><th>公积金</th><th>个税</th><th>其他扣款</th><th>实发</th><th></th></tr></thead>
+    <tbody>
+    {% for r in records %}
+      <tr>
+        <td>{{ r.month }}</td><td><b>{{ r.emp_name }}</b></td>
+        <td>{{ r.base_salary }}</td><td>{{ r.performance }}</td><td>{{ r.subsidy }}</td><td>{{ r.overtime_pay }}</td>
+        <td class="muted">-{{ r.social_insurance }}</td><td class="muted">-{{ r.housing_fund }}</td>
+        <td class="muted">-{{ r.tax }}</td><td class="muted">-{{ r.other_deduct }}</td>
+        <td><b>{{ r.net_salary }}</b></td>
+        <td><button class="btn btn-sm" hx-post="/api/salary/{{ r.id }}/delete" hx-confirm="删除？" hx-target="body" hx-swap="outerHTML">删</button></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">暂无工资数据。导入 Excel 后即可按人按月查询答疑。</div>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h3>「工资少了」常见差异原因（答疑话术参考）</h3></div>
+  <table>
+    <thead><tr><th style="width:200px">原因</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>请假扣款</td><td>事假按日薪全额扣除；病假按比例计发。可核对考勤明细。</td></tr>
+      <tr><td>入离职折算</td><td>入职/离职当月按实际出勤天数折算。</td></tr>
+      <tr><td>社保/公积金基数调整</td><td>每年 7 月按上年度平均工资调整基数，个人扣缴增加。</td></tr>
+      <tr><td>个税累计预扣</td><td>个税按全年累计预扣预缴，收入达到临界档位后税率上跳，实发可能减少。</td></tr>
+      <tr><td>绩效/加班浮动</td><td>绩效按考核系数浮动；加班费随实际加班变化。</td></tr>
+      <tr><td>其他扣款</td><td>罚款、垫付报销冲抵、借款扣回等，备注栏应有说明。</td></tr>
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

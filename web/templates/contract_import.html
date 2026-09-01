@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block title %}批量导入合同 - 人事工作台{% endblock %}
+{% block page_title %}Excel 批量导入合同{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:760px">
+  <h3>导入说明</h3>
+  <div class="mt small">
+    <p>1. 下载模板（或按模板表头自建 Excel）。</p>
+    <p>2. 把现有合同台账粘贴进模板，保存为 .xlsx。</p>
+    <p>3. 上传后系统自动导入，重复导入会新增重复记录（请先删除旧批次或人工核对）。</p>
+  </div>
+  <div class="mt" style="overflow:auto">
+    <table style="min-width:640px">
+      <thead><tr><th>列名</th><th>必填</th><th>示例</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>合同名称</td><td>是</td><td>劳动合同</td><td>劳动合同/保密协议/竞业限制协议等</td></tr>
+        <tr><td>人员</td><td>是</td><td>张三</td><td>员工姓名</td></tr>
+        <tr><td>开始日期</td><td>否</td><td>2024-09-01</td><td>支持 2024/09/01、2024.09.01</td></tr>
+        <tr><td>结束日期</td><td>否</td><td>2027-08-31</td><td>无固定期限可留空</td></tr>
+        <tr><td>第几次合同</td><td>否</td><td>2</td><td>默认 1</td></tr>
+        <tr><td>合同类型</td><td>否</td><td>固定期限</td><td>固定期限/无固定期限</td></tr>
+        <tr><td>状态</td><td>否</td><td>履行中</td><td>默认履行中</td></tr>
+        <tr><td>试用期开始 / 试用期结束</td><td>否</td><td>2024-09-01 / 2024-11-30</td><td>用于试用期到期提醒</td></tr>
+        <tr><td>备注</td><td>否</td><td></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="form-actions mt">
+    <a class="btn btn-primary" href="/api/contract/template">下载 Excel 模板</a>
+  </div>
+  <form method="post" action="/api/contract/import" enctype="multipart/form-data" hx-post="/api/contract/import" hx-target="body" hx-swap="outerHTML" class="mt" style="border-top:1px solid var(--line);padding-top:16px">
+    <div class="form-item"><label>选择 .xlsx 文件</label><input type="file" name="file" accept=".xlsx" required></div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">导入</button><a class="btn" href="/contract">返回</a></div>
+  </form>
+</div>
+{% endblock %}

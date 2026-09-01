@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+{% block title %}{{ '编辑面试' if iv else '新增面试' }} - 人事工作台{% endblock %}
+{% block page_title %}{{ '编辑面试安排' if iv else '新增面试安排' }}{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:820px">
+  <form class="form-grid" hx-post="{{ '/api/interview/' ~ iv.id ~ '/update' if iv else '/api/interview/add' }}" hx-target="body" hx-swap="outerHTML">
+    <div class="form-item"><label>候选人 *</label><input name="candidate_name" required value="{{ iv.candidate_name if iv else '' }}"></div>
+    <div class="form-item"><label>应聘岗位</label><input name="position" value="{{ iv.position if iv else '' }}"></div>
+    <div class="form-item"><label>轮次</label>
+      <select name="round_name">
+        {% for r in ['初试','复试','终面','HR面'] %}
+        <option value="{{ r }}" {{ 'selected' if iv and iv.round_name==r else '' }}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-item"><label>面试官（逗号分隔）</label><input name="interviewers" value="{{ iv.interviewers if iv else '' }}" placeholder="如：张经理, 李总监"></div>
+    <div class="form-item"><label>开始时间</label><input name="start_time" type="datetime-local" value="{{ iv.start_time.strftime('%Y-%m-%dT%H:%M') if iv and iv.start_time else '' }}"></div>
+    <div class="form-item"><label>结束时间</label><input name="end_time" type="datetime-local" value="{{ iv.end_time.strftime('%Y-%m-%dT%H:%M') if iv and iv.end_time else '' }}"></div>
+    <div class="form-item"><label>方式</label>
+      <select name="mode">
+        {% for m in ['现场','视频','电话'] %}
+        <option value="{{ m }}" {{ 'selected' if iv and iv.mode==m else '' }}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-item"><label>地点 / 会议号</label><input name="location" value="{{ iv.location if iv else '' }}" placeholder="如：3 楼会议室 A / 腾讯会议 123-456-789"></div>
+    <div class="form-item"><label>状态</label>
+      <select name="status">
+        {% for st in ['待确认','已预约','已完成','已评价','已取消','爽约'] %}
+        <option value="{{ st }}" {{ 'selected' if iv and iv.status==st else '' }}>{{ st }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-item" style="grid-column:1/-1"><label>备注</label><textarea name="note">{{ iv.note if iv else '' }}</textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">保存</button>
+      <a class="btn" href="/interviews">返回</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+{% block title %}假期额度计算器 - 人事工作台{% endblock %}
+{% block page_title %}假期额度计算器{% endblock %}
+{% block content %}
+
+<div class="panel" style="max-width:900px">
+  <div class="panel-head"><h3>年假 / 假期额度计算</h3></div>
+  <div class="warn-note">
+    依据《职工带薪年休假条例》第三条：累计工作满 1 年不满 10 年的，年休假 5 天；满 10 年不满 20 年的，10 天；满 20 年的，15 天。
+    法定年假不包含周末与法定节假日。此处按「司龄」计算，<b>累计社会工龄</b>请在下方手动修正。
+  </div>
+
+  <div class="form-grid">
+    <div class="form-item"><label>选择员工（自动带入司龄）</label>
+      <select id="empSelect" onchange="loadEmp(this.value)">
+        <option value="">手动输入</option>
+        {% for e in employees %}
+        <option value="{{ e.id }}" data-hire="{{ e.hire_date }}" data-name="{{ e.name }}">{{ e.name }}（{{ e.department or '' }}）</option>
+        {% endfor %}
+      </select></div>
+    <div class="form-item"><label>姓名</label><input id="leaveName" placeholder="（可选）"></div>
+    <div class="form-item"><label>入职日期</label><input id="hireDate" type="date"></div>
+    <div class="form-item"><label>社会工龄（年，可手动覆盖）</label><input id="socialYears" type="number" step="0.1" value="0"></div>
+    <div class="form-item" style="grid-column:1/-1"><button class="btn btn-primary" onclick="calc()">计算额度</button></div>
+  </div>
+
+  <div id="result" style="display:none" class="mt">
+    <div class="cards" id="resultCards"></div>
+    <div class="warn-note" id="resultNote"></div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function loadEmp(id) {
+  var opt = document.querySelector('#empSelect option[value="' + id + '"]');
+  if (!opt || !opt.dataset.hire) return;
+  document.getElementById('leaveName').value = opt.dataset.name || '';
+  document.getElementById('hireDate').value = opt.dataset.hire;
+  calc();
+}
+function calc() {
+  var hire = document.getElementById('hireDate').value;
+  var social = parseFloat(document.getElementById('socialYears').value || 0);
+  if (!hire && !social) { alert('请选择员工或输入入职日期'); return; }
+  var years = social;
+  if (hire) {
+    var d1 = new Date(hire), d2 = new Date();
+    var tenure = (d2 - d1) / (365.25 * 24 * 3600 * 1000);
+    years = Math.max(years, tenure);
+  }
+  var annual = 0;
+  if (years >= 20) annual = 15;
+  else if (years >= 10) annual = 10;
+  else if (years >= 1) annual = 5;
+
+  // 年中入职/离职：按当年度剩余日历天数折算（《职工带薪年休假条例》第五条，不足1天不计）
+  var prorated = annual;
+  var note2 = '';
+  if (hire && annual > 0) {
+    var hd = new Date(hire);
+    var nowYear = new Date().getFullYear();
+    if (hd.getFullYear() === nowYear) {
+      var yearEnd = new Date(nowYear, 11, 31);
+      var daysLeft = Math.floor((yearEnd - hd) / (24 * 3600 * 1000)) + 1;
+      prorated = Math.floor(daysLeft / 365 * annual);
+      note2 = ' 当年入职，按剩余 ' + daysLeft + ' 天折算后为 ' + prorated + ' 天（不足 1 天不计）。';
+    }
+  }
+
+  var cards = '';
+  cards += '<div class="card"><div class="label">司龄/工龄</div><div class="num">' + years.toFixed(1) + ' 年</div></div>';
+  cards += '<div class="card"><div class="label">法定年假</div><div class="num ok">' + annual + ' 天</div></div>';
+  cards += '<div class="card"><div class="label">当年折算年假</div><div class="num">' + prorated + ' 天</div></div>';
+  cards += '<div class="card"><div class="label">婚假 / 产假（法定）</div><div class="num small-num">3 天 / 98 天</div></div>';
+  document.getElementById('resultCards').innerHTML = cards;
+  document.getElementById('resultNote').textContent =
+    '说明：年假按累计工龄（含社会工龄）计算。' + note2 +
+    '公司司龄附加年假、事假/病假额度以公司制度为准，请核对《考勤与假期管理制度》。';
+  document.getElementById('result').style.display = 'block';
+}
+</script>
+{% endblock %}

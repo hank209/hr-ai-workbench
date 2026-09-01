@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block title %}制度知识库 - 人事工作台{% endblock %}
+{% block page_title %}制度知识库{% endblock %}
+{% block content %}
+
+<div class="panel">
+  <div class="panel-head"><h3>制度检索</h3></div>
+  <div class="search-row">
+    <input id="kwSearch" placeholder="输入关键词，如：年假 / 报销 / 试用期" onkeydown="if(event.key==='Enter')searchKnowledge()">
+    <button class="btn btn-primary" onclick="searchKnowledge()">检索</button>
+  </div>
+  <div id="searchResult"><div class="empty">输入关键词后点「检索」。命中结果按相关性排序，显示出处（文档 + 条款 + 版本）。</div></div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h3>上传制度文档</h3></div>
+  <div class="warn-note">支持 txt / md / docx / 文字版 pdf（扫描件一期不支持，需先转文字版）。上传后自动按「第X条」切片入库，检索时带出处引用。</div>
+  <form class="form-grid" hx-post="/api/knowledge/upload" hx-target="body" hx-swap="outerHTML" enctype="multipart/form-data">
+    <div class="form-item" style="grid-column:1/-1"><label>文档文件 *</label><input type="file" name="file" accept=".txt,.md,.docx,.pdf" required></div>
+    <div class="form-item"><label>标题（留空用文件名）</label><input name="title" placeholder="如：考勤管理制度"></div>
+    <div class="form-item"><label>分类</label>
+      <select name="category">
+        <option>制度</option><option>流程</option><option>模板</option><option>法规</option>
+      </select>
+    </div>
+    <div class="form-item"><label>版本</label><input name="version" placeholder="如 v3.2"></div>
+    <div class="form-item"><label>生效日期</label><input name="effective_date" type="date"></div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">上传并切片入库</button></div>
+  </form>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h3>已入库文档（{{ docs|length }}）</h3></div>
+  {% if docs %}
+  <table>
+    <thead><tr><th>标题</th><th>分类</th><th>版本</th><th>生效日期</th><th>切片数</th><th>入库时间</th><th></th></tr></thead>
+    <tbody>
+    {% for d in docs %}
+      <tr>
+        <td>{{ d.title }}</td><td>{{ d.category }}</td>
+        <td>{{ d.version or '-' }}</td><td>{{ d.effective_date or '-' }}</td>
+        <td>{{ d.chunk_count }}</td><td class="small">{{ d.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td><button class="btn btn-sm btn-danger" hx-post="/api/knowledge/{{ d.id }}/delete" hx-confirm="删除《{{ d.title }}》及其全部切片？" hx-target="body" hx-swap="outerHTML">删除</button></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">暂无文档。上传第一份制度文档，体验条款级检索。</div>
+  {% endif %}
+</div>
+
+{% endblock %}

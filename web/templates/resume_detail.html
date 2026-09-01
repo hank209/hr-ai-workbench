@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+{% block title %}{{ c.name or '候选人详情' }} - 人事工作台{% endblock %}
+{% block page_title %}候选人详情{% endblock %}
+{% block content %}
+
+<div class="panel">
+  <div class="panel-head">
+    <h3>{{ c.name or '未识别姓名' }}
+      <span class="badge badge-{{ {'pass':'success','maybe':'medium','reject':'danger'}[c.bucket] if c.bucket else 'medium' }}">
+        {{ {'pass':'通过','maybe':'待定','reject':'不通过','':'未筛选'}[c.bucket] }} {{ c.score }} 分
+      </span>
+    </h3>
+    <a class="btn btn-sm" href="/resume">返回列表</a>
+  </div>
+
+  {% if c.parse_level == 'scan' %}
+  <div class="warn-note">该文件为<b>扫描件</b>（图片型 PDF），一期无法自动识别文字。请人工查看原文后手动补充字段。</div>
+  {% endif %}
+
+  <div class="cards">
+    <div class="card"><div class="label">来源渠道</div><div class="num small-num">{{ c.source_channel }}</div></div>
+    <div class="card"><div class="label">解析状态</div><div class="num small-num">{{ {'ok':'已解析','scan':'扫描件','failed':'失败'}[c.parse_level] }}</div></div>
+    <div class="card"><div class="label">初筛分数</div><div class="num {{ 'warn' if c.bucket=='reject' else 'ok' }}">{{ c.score }}</div></div>
+    <div class="card"><div class="label">入库时间</div><div class="num small-num">{{ c.created_at.strftime('%m-%d %H:%M') if c.created_at else '-' }}</div></div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h4 class="sec-title">解析字段（黄色 = 低置信度，建议核对）</h4>
+      <form class="patch-form" hx-post="/api/resume/{{ c.id }}/patch" hx-target="body" hx-swap="outerHTML">
+        <div class="form-grid">
+          {% for key, val in field_items %}
+          <div class="form-item {{ 'low-conf' if conf.get(key,1)<0.85 else '' }}">
+            <label>{{ {'name':'姓名','phone':'手机号','email':'邮箱','city':'城市','education':'学历','school':'学校','major':'专业','work_years':'工作年限(年)','expect_salary':'期望薪资(元/月)','current_company':'当前公司','current_title':'当前职位'}[key] }}</label>
+            <input name="{{ key }}" value="{{ val if val not in (None,'') else '' }}">
+          </div>
+          {% endfor %}
+        </div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit">保存修正</button></div>
+      </form>
+
+      <h4 class="sec-title">初筛理由</h4>
+      {% if hard_detail %}
+      <table class="detail-table">
+        <thead><tr><th>硬条件</th><th>要求</th><th>实际</th><th>结果</th></tr></thead>
+        <tbody>
+        {% for d in hard_detail %}
+        <tr><td>{{ d.label }}</td><td>{{ d.expect }}</td><td>{{ d.actual }}</td>
+          <td><span class="{{ 'ok-text' if d.ok else 'no-text' }}">{{ '满足' if d.ok else '不满足' }}</span></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <table class="detail-table">
+        <tbody>
+        {% for s in score_detail %}
+        <tr><td>{{ s.label }}</td><td>+{{ s.part }} 分</td><td class="muted">{{ s.reason }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">尚未筛选。返回列表页应用条件后查看。</div>
+      {% endif %}
+    </div>
+
+    <div>
+      <h4 class="sec-title">简历原文（板块）</h4>
+      {% for sec in sections %}
+      <div class="sec-block">
+        <div class="sec-tag">{{ sec.section_type }}</div>
+        <pre class="sec-pre">{{ sec.content }}</pre>
+      </div>
+      {% else %}
+      <div class="empty">扫描件无原文。</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+{% block title %}{{ '编辑合同' if c else '新增合同' }} - 人事工作台{% endblock %}
+{% block page_title %}{{ '编辑合同' if c else '新增合同' }}{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:820px">
+  <form class="form-grid" method="post" action="{{ '/api/contract/' ~ c.id ~ '/update' if c else '/api/contract/add' }}" hx-post="{{ '/api/contract/' ~ c.id ~ '/update' if c else '/api/contract/add' }}" hx-target="body" hx-swap="outerHTML">
+    <div class="form-item"><label>人员 *</label><input name="personnel" required value="{{ c.personnel if c else '' }}" placeholder="姓名"></div>
+    <div class="form-item"><label>合同名称 *</label><input name="name" required value="{{ c.name if c else '劳动合同' }}" list="contractNames">
+      <datalist id="contractNames"><option>劳动合同</option><option>保密协议</option><option>竞业限制协议</option><option>实习协议</option><option>劳务协议</option></datalist>
+    </div>
+    <div class="form-item"><label>第几次合同</label><input name="contract_no" type="number" min="1" value="{{ c.contract_no if c else 1 }}"></div>
+    <div class="form-item"><label>合同类型</label>
+      <select name="contract_type">
+        <option value="固定期限" {{ 'selected' if c and c.contract_type=='固定期限' else '' }}>固定期限</option>
+        <option value="无固定期限" {{ 'selected' if c and c.contract_type=='无固定期限' else '' }}>无固定期限</option>
+        <option value="以完成一定工作任务为期限" {{ 'selected' if c and c.contract_type.startswith('以完成') else '' }}>以完成一定工作任务为期限</option>
+      </select>
+    </div>
+    <div class="form-item"><label>开始日期</label><input name="start_date" type="date" value="{{ c.start_date if c and c.start_date else '' }}"></div>
+    <div class="form-item"><label>到期日期（无固定期限可留空）</label><input name="end_date" type="date" value="{{ c.end_date if c and c.end_date else '' }}"></div>
+    <div class="form-item"><label>试用期开始</label><input name="probation_start" type="date" value="{{ c.probation_start if c and c.probation_start else '' }}"></div>
+    <div class="form-item"><label>试用期结束（到期前 15/7 天提醒转正）</label><input name="probation_end" type="date" value="{{ c.probation_end if c and c.probation_end else '' }}"></div>
+    <div class="form-item"><label>状态</label>
+      <select name="status">
+        <option value="履行中" {{ 'selected' if not c or c.status=='履行中' else '' }}>履行中</option>
+        <option value="待签" {{ 'selected' if c and c.status=='待签' else '' }}>待签</option>
+        <option value="已续签" {{ 'selected' if c and c.status=='已续签' else '' }}>已续签</option>
+        <option value="已终止" {{ 'selected' if c and c.status=='已终止' else '' }}>已终止</option>
+      </select>
+    </div>
+    <div class="form-item" style="grid-column:1/-1"><label>备注</label><textarea name="note">{{ c.note if c else '' }}</textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">保存</button>
+      <a class="btn" href="/contract">返回</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

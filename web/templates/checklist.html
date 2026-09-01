@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block title %}入离职清单 - 人事工作台{% endblock %}
+{% block page_title %}入离职清单{% endblock %}
+{% block content %}
+
+<div class="panel">
+  <div class="panel-head"><h3>发起清单</h3></div>
+  <form class="form-grid" hx-post="/api/checklist/start" hx-target="body" hx-swap="outerHTML" style="max-width:700px">
+    <div class="form-item"><label>员工姓名 *</label><input name="emp_name" required placeholder="如：张三"></div>
+    <div class="form-item"><label>类型</label>
+      <select name="check_type"><option value="入职">入职</option><option value="离职">离职</option></select></div>
+    <div class="form-item" style="grid-column:1/-1"><label>自定义清单项（逗号分隔，留空用内置模板）</label><input name="item_names" placeholder="内置入职13项 / 离职10项"></div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">生成清单</button></div>
+  </form>
+</div>
+
+{% if groups %}
+<div class="panel">
+  <div class="panel-head"><h3>进行中的清单</h3>
+    <select class="input" style="width:180px" onchange="location.href='/checklist?emp='+this.value">
+      <option value="">全部员工</option>
+      {% for p in people %}<option value="{{ p }}" {{ 'selected' if emp==p else '' }}>{{ p }}</option>{% endfor %}
+    </select>
+  </div>
+
+  {% for (ename, ctype), items in groups.items() %}
+  {% set done = items|selectattr('done')|list|length %}
+  {% set pct = (done * 100 / items|length)|round|int %}
+  <div class="cl-group">
+    <div class="cl-head">
+      <span class="cl-title">{{ ename }} · {{ ctype }}清单</span>
+      <span class="badge badge-medium">{{ done }}/{{ items|length }}</span>
+      <span class="cl-bar"><span class="cl-fill" style="width:{{ pct }}%"></span></span>
+      <span class="cl-pct">{{ pct }}%</span>
+    </div>
+    <div class="cl-items">
+      {% for it in items %}
+      <label class="cl-item {{ 'done' if it.done else '' }}">
+        <input type="checkbox" {{ 'checked' if it.done else '' }} hx-post="/api/checklist/{{ it.id }}/toggle" hx-target="body" hx-swap="outerHTML">
+        <span>{{ it.item_name }}</span>
+        {% if it.done_at %}<span class="muted small">{{ it.done_at.strftime('%m-%d %H:%M') }}</span>{% endif %}
+        <button class="btn btn-sm" hx-post="/api/checklist/{{ it.id }}/delete" hx-confirm="删除此项？" hx-target="body" hx-swap="outerHTML">删</button>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="panel"><div class="empty">暂无清单。发起第一份入职/离职清单开始使用。</div></div>
+{% endif %}
+
+{% endblock %}

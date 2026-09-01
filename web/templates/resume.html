@@ -1,0 +1,149 @@
+{% extends "layout.html" %}
+{% block title %}简历管理与初筛 - 人事工作台{% endblock %}
+{% block page_title %}简历管理与初筛{% endblock %}
+{% block content %}
+
+{% if imported %}
+<div class="alert success">导入完成：新增 {{ ok }} 份，去重跳过 {{ dup }} 份{% if scan %}<span class="warn-text">，{{ scan }} 份为扫描件需人工识别</span>{% endif %}</div>
+{% endif %}
+
+<div class="panel">
+  <div class="panel-head">
+    <h3>岗位与批次</h3>
+    <div class="row-gap">
+      <select class="input" style="width:240px" onchange="location.href='/resume?rid='+this.value">
+        <option value="0">全部候选人（不按岗位）</option>
+        {% for r in requisitions %}
+        <option value="{{ r.id }}" {{ 'selected' if cur and cur.id==r.id else '' }}>{{ r.title }}{% if r.department %}（{{ r.department }}）{% endif %}</option>
+        {% endfor %}
+      </select>
+      <a class="btn" href="/resume/import">批量导入简历</a>
+      <button class="btn" onclick="document.getElementById('newReq').style.display='block'">+ 新建岗位</button>
+      {% if cur %}<button class="btn btn-danger" hx-post="/api/requisition/{{ cur.id }}/delete" hx-confirm="删除岗位「{{ cur.title }}」？候选人保留但不再关联。" hx-target="body" hx-swap="outerHTML">删除岗位</button>{% endif %}
+    </div>
+  </div>
+
+  <div id="newReq" style="display:none" class="mt">
+    <form class="form-grid" hx-post="/api/requisition/add" hx-target="body" hx-swap="outerHTML">
+      <div class="form-item"><label>岗位名称 *</label><input name="title" required placeholder="如：Java高级开发工程师"></div>
+      <div class="form-item"><label>部门</label><input name="department" placeholder="如：研发中心"></div>
+      <div class="form-item"><label>学历要求</label>
+        <select name="education"><option>不限</option><option>本科</option><option>大专</option><option>硕士</option><option>博士</option></select></div>
+      <div class="form-item"><label>工作年限 ≥</label><input name="min_years" type="number" min="0" value="0"></div>
+      <div class="form-item"><label>城市</label><input name="city" placeholder="不限"></div>
+      <div class="form-item"><label>期望薪资 ≤（元/月）</label><input name="salary_max" type="number" min="0" value="0" placeholder="0=不限"></div>
+      <div class="form-item"><label>技能关键词（逗号分隔）</label><input name="skills" placeholder="如：Spring, MySQL"></div>
+      <div class="form-item"><label>技能匹配</label>
+        <select name="skills_mode"><option value="any">任一命中</option><option value="all">全部命中</option></select></div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">创建岗位</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h3>初筛条件</h3>
+    <span class="muted">合规说明：性别/婚育/户籍不作为筛选项；年龄请用「工作年限」替代。</span>
+  </div>
+  <form class="form-grid" hx-post="/api/resume/screen" hx-target="body" hx-swap="outerHTML">
+    <input type="hidden" name="requisition_id" value="{{ cur.id if cur else 0 }}">
+    <div class="form-item"><label>学历要求</label>
+      <select name="education">
+        <option value="不限" {{ 'selected' if hard.get('education')=='不限' else '' }}>不限</option>
+        <option value="本科" {{ 'selected' if hard.get('education')=='本科' else '' }}>本科及以上</option>
+        <option value="大专" {{ 'selected' if hard.get('education')=='大专' else '' }}>大专及以上</option>
+        <option value="硕士" {{ 'selected' if hard.get('education')=='硕士' else '' }}>硕士及以上</option>
+      </select></div>
+    <div class="form-item"><label>工作年限 ≥</label><input name="min_years" type="number" min="0" value="{{ hard.get('min_years') or 0 }}"></div>
+    <div class="form-item"><label>城市</label><input name="city" value="{{ hard.get('city') or '不限' }}" placeholder="不限"></div>
+    <div class="form-item"><label>期望薪资 ≤（元/月，0=不限）</label><input name="salary_max" type="number" min="0" value="{{ hard.get('salary_max') or 0 }}"></div>
+    <div class="form-item"><label>技能关键词（逗号分隔）</label><input name="skills" value="{{ hard.get('skills') or '' }}" placeholder="如：Java, Spring Cloud"></div>
+    <div class="form-item"><label>技能匹配</label>
+      <select name="skills_mode">
+        <option value="any" {{ 'selected' if hard.get('skills_mode')!='all' else '' }}>任一命中</option>
+        <option value="all" {{ 'selected' if hard.get('skills_mode')=='all' else '' }}>全部命中</option>
+      </select></div>
+    <div class="form-item"><label>软条件权重：年限</label><input name="w_years" type="number" min="0" max="50" value="{{ soft.get('weights',{}).get('years',20) }}"></div>
+    <div class="form-item"><label>软条件权重：院校</label><input name="w_school" type="number" min="0" max="50" value="{{ soft.get('weights',{}).get('school',12) }}"></div>
+    <div class="form-item"><label>软条件权重：管理</label><input name="w_management" type="number" min="0" max="50" value="{{ soft.get('weights',{}).get('management',14) }}"></div>
+    <div class="form-item"><label>软条件权重：稳定性</label><input name="w_stability" type="number" min="0" max="50" value="{{ soft.get('weights',{}).get('stability',12) }}"></div>
+    <div class="form-item"><label>软条件权重：技能</label><input name="w_skills" type="number" min="0" max="50" value="{{ soft.get('weights',{}).get('skills',20) }}"></div>
+    <div class="form-item"><label>通过阈值 ≥</label><input name="pass_threshold" type="number" min="0" max="100" value="{{ soft.get('pass_threshold',80) }}"></div>
+    <div class="form-item"><label>待定阈值 ≥</label><input name="maybe_threshold" type="number" min="0" max="100" value="{{ soft.get('maybe_threshold',60) }}"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">应用条件并筛选</button>
+      <span class="muted">筛选结果实时写库可回溯；硬条件不满足直接归「不通过」档。</span>
+    </div>
+  </form>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <h3>候选人（{{ candidates_len }}）</h3>
+    <div class="row-gap">
+      <input class="input" style="width:200px" placeholder="搜索姓名/手机号" onkeydown="if(event.key==='Enter')location.href='/resume?rid={{ cur.id if cur else 0 }}&q='+this.value">
+      <div class="tabs">
+        <span class="tab on" onclick="filterResumes(this,'all')">全部 {{ counts.all }}</span>
+        <span class="tab" onclick="filterResumes(this,'pass')">通过 {{ counts.pass }}</span>
+        <span class="tab" onclick="filterResumes(this,'maybe')">待定 {{ counts.maybe }}</span>
+        <span class="tab" onclick="filterResumes(this,'reject')">不通过 {{ counts.reject }}</span>
+        <span class="tab" onclick="filterResumes(this,'unscreened')">未筛选 {{ counts.unscreened }}</span>
+      </div>
+    </div>
+  </div>
+
+  {% if candidates %}
+  {% for c in candidates %}
+  <div class="cand-card" data-bucket="{{ c.bucket }}">
+    <div class="cc-head">
+      <span class="cc-name">{{ c.name }}</span>
+      <span class="badge badge-{{ {'pass':'success','maybe':'medium','reject':'danger'}[c.bucket] if c.bucket else 'medium' }}">
+        {{ {'pass':'通过','maybe':'待定','reject':'不通过','':'未筛选'}[c.bucket] }}
+      </span>
+      <span class="cc-score">{{ c.score }} 分</span>
+      <span class="muted">来源 {{ c.source_channel }}</span>
+      {% if c.parse_level == 'scan' %}<span class="badge badge-danger">扫描件·待人工识别</span>{% endif %}
+    </div>
+    <div class="cc-meta">
+      {% if c.education %}<span>{{ c.education }}</span>{% endif %}
+      {% if c.school %}<span>{{ c.school }}</span>{% endif %}
+      {% if c.work_years %}<span>{{ c.work_years }} 年经验</span>{% endif %}
+      {% if c.city %}<span>{{ c.city }}</span>{% endif %}
+      {% if c.expect_salary %}<span>期望 {{ c.expect_salary }} 元/月</span>{% endif %}
+      {% if c.skills %}<span class="skills">技能: {{ c.skills[:6]|join(' / ') }}</span>{% endif %}
+    </div>
+    {% if c.hard_detail %}
+    <div class="cc-reason">
+      {% for d in c.hard_detail %}
+      <span class="{{ 'ok' if d.ok else 'no' }}">{{ d.label }}: {{ d.actual or '?' }} {{ '(要求 '~d.expect~')' }}</span>
+      {% endfor %}
+      {% for s in c.score_detail[:4] %}
+      <span class="soft">[{{ s.label }} +{{ s.part }}分 {{ s.reason }}]</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="cc-actions">
+      <a class="btn btn-sm" href="/resume/{{ c.id }}">查看/修正</a>
+      <a class="btn btn-sm" href="/interviews/new?name={{ c.name }}&position={{ cur.title if cur else '' }}">安排面试</a>
+      <button class="btn btn-sm btn-danger" hx-post="/api/resume/{{ c.id }}/delete" hx-confirm="删除该候选人？" hx-target="body" hx-swap="outerHTML">删除</button>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty">暂无候选人。先到「批量导入简历」上传，或新建岗位后导入。</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function filterResumes(el, bucket) {
+  document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('on'); });
+  el.classList.add('on');
+  document.querySelectorAll('.cand-card').forEach(function (card) {
+    var b = card.dataset.bucket;
+    var show = bucket === 'all' ? true : (bucket === 'unscreened' ? !b : b === bucket);
+    card.style.display = show ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

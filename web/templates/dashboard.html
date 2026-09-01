@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% block title %}待办中心 - 人事工作台{% endblock %}
+{% block page_title %}待办中心{% endblock %}
+{% block content %}
+
+<div class="cards">
+  <div class="card"><div class="label">待办事项</div><div class="num {{ 'warn' if urgent else '' }}">{{ todos|length }}</div></div>
+  <div class="card"><div class="label">合同 30 天内到期</div><div class="num {{ 'warn' if expiring else 'ok' }}">{{ expiring }}</div></div>
+  <div class="card"><div class="label">今日面试</div><div class="num">{{ today_iv }}</div></div>
+  <div class="card"><div class="label">知识库文档 / 常用回复</div><div class="num">{{ doc_count }} / {{ reply_count }}</div></div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <h3>待办事项（自动扫描 + 手动添加）</h3>
+    <button class="btn btn-sm" onclick="document.getElementById('addTodoBox').style.display='block'">+ 手动添加</button>
+  </div>
+
+  <div id="addTodoBox" style="display:none" class="mt">
+    <form class="form-grid" hx-post="/api/todo/add" hx-target="body" hx-swap="outerHTML">
+      <div class="form-item"><label>待办内容</label><input name="title" required placeholder="例如：联系张三确认到岗时间"></div>
+      <div class="form-item"><label>日期</label><input name="due_date" type="date"></div>
+      <div class="form-item"><label>优先级</label>
+        <select name="level">
+          <option value="urgent">紧急</option>
+          <option value="high" selected>高</option>
+          <option value="medium">中</option>
+          <option value="low">低</option>
+        </select>
+      </div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">添加</button>
+        <button class="btn" type="button" onclick="document.getElementById('addTodoBox').style.display='none'">取消</button></div>
+    </form>
+  </div>
+
+  {% if todos %}
+  <table>
+    <thead><tr><th style="width:70px">级别</th><th>内容</th><th style="width:110px">日期</th><th style="width:140px">来源</th><th style="width:80px"></th></tr></thead>
+    <tbody>
+    {% for t in todos %}
+      <tr>
+        <td><span class="badge badge-{{ t.level }}">{{ {'urgent':'紧急','high':'高','medium':'中','low':'低'}[t.level] }}</span></td>
+        <td>{{ t.title }}</td>
+        <td>{{ t.due_date or '-' }}</td>
+        <td class="muted small">{{ t.source }}</td>
+        <td><button class="btn btn-sm btn-primary" hx-post="/api/todo/{{ t.id }}/done" hx-target="closest tr" hx-swap="outerHTML">完成</button></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">暂无待办，全部处理完毕</div>
+  {% endif %}
+</div>
+
+{% endblock %}

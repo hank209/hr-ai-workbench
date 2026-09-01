@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+{% block title %}面试安排 - 人事工作台{% endblock %}
+{% block page_title %}面试安排与跟进{% endblock %}
+{% block content %}
+
+<div class="warn-note">本机版定位：集中管理 + 自动提醒，不遗漏、可追溯。时间协调仍需人工确认后录入（无日历 API 集成）。录入后到期会在待办中心提醒。</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <h3>面试列表</h3>
+    <a class="btn btn-sm btn-primary" href="/interviews/new">+ 新增面试</a>
+  </div>
+  <div class="tabs">
+    <span class="tab on" onclick="switchIv(this,'全部')">全部</span>
+    <span class="tab" onclick="switchIv(this,'待确认')">待确认</span>
+    <span class="tab" onclick="switchIv(this,'已预约')">已预约</span>
+    <span class="tab" onclick="switchIv(this,'已完成')">已完成</span>
+    <span class="tab" onclick="switchIv(this,'爽约')">爽约</span>
+  </div>
+  {% if interviews %}
+  <table>
+    <thead><tr><th>候选人</th><th>岗位</th><th>轮次</th><th>面试官</th><th>时间</th><th>方式</th><th>地点/会议</th><th>状态</th><th></th></tr></thead>
+    <tbody id="interviewRows">
+    {% for iv in interviews %}
+      <tr data-status="{{ iv.status }}">
+        <td>{{ iv.candidate_name }}</td><td>{{ iv.position or '-' }}</td><td>{{ iv.round_name }}</td>
+        <td class="small">{{ iv.interviewers or '-' }}</td>
+        <td class="small">{{ iv.start_time.strftime('%m-%d %H:%M') if iv.start_time else '-' }} ~ {{ iv.end_time.strftime('%H:%M') if iv.end_time else '' }}</td>
+        <td>{{ iv.mode }}</td><td class="small">{{ iv.location or '-' }}</td>
+        <td>
+          <select onchange="changeStatus(this, {{ iv.id }})" class="small" style="width:auto">
+            {% for st in ['待确认','已预约','已完成','已评价','已取消','爽约'] %}
+            <option value="{{ st }}" {{ 'selected' if iv.status==st else '' }}>{{ st }}</option>
+            {% endfor %}
+          </select>
+        </td>
+        <td>
+          <a class="btn btn-sm" href="/interviews/{{ iv.id }}/edit">编辑</a>
+          <button class="btn btn-sm btn-danger" hx-post="/api/interview/{{ iv.id }}/delete" hx-confirm="删除该面试安排？" hx-target="body" hx-swap="outerHTML">删除</button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">暂无面试安排。</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function switchIv(el, st) {
+  document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('on'); });
+  el.classList.add('on');
+  filterInterviews(st);
+}
+function changeStatus(sel, id) {
+  var fd = new FormData();
+  fd.append('status', sel.value);
+  fetch('/api/interview/' + id + '/status', { method: 'POST', body: fd }).then(function () {
+    toast('状态已更新');
+  });
+}
+</script>
+{% endblock %}

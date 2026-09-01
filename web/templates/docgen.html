@@ -1,0 +1,106 @@
+{% extends "layout.html" %}
+{% block title %}文书生成器 - 人事工作台{% endblock %}
+{% block page_title %}文书生成器{% endblock %}
+{% block content %}
+
+<div class="panel">
+  <div class="panel-head">
+    <h3>选模板 → 填变量 → 预览 → 复制</h3>
+    <div class="row-gap">
+      <a class="btn" href="/docgen/new">+ 新建模板</a>
+    </div>
+  </div>
+  <div class="row-gap">
+    <select class="input" style="width:280px" onchange="location.href='/docgen?tid='+this.value">
+      {% for t in templates %}
+      <option value="{{ t.id }}" {{ 'selected' if cur and cur.id==t.id else '' }}>[{{ t.category }}] {{ t.name }}</option>
+      {% endfor %}
+    </select>
+    {% if cur %}
+    <select class="input" style="width:220px" onchange="location.href='/docgen?tid={{ cur.id }}&emp_id='+this.value">
+      <option value="0">不关联员工（手动填）</option>
+      {% for e in employees %}
+      <option value="{{ e.id }}" {{ 'selected' if emp and emp.id==e.id else '' }}>{{ e.name }}（{{ e.department or '' }}）</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+  </div>
+
+  {% if cur %}
+  <div class="two-col mt">
+    <div>
+      <h4 class="sec-title">变量填写（{{ '已带入 ' ~ emp.name if emp else '手动填写' }}）</h4>
+      <form class="form-grid" id="varForm" onsubmit="previewDoc(); return false;">
+        <div id="varFields"></div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit">生成预览</button></div>
+      </form>
+      <div class="mt"><a class="btn btn-sm" href="/docgen/{{ cur.id }}/edit">编辑模板</a>
+      <button class="btn btn-sm btn-danger" hx-post="/api/doctpl/{{ cur.id }}/delete" hx-confirm="删除模板？" hx-target="body" hx-swap="outerHTML">删除模板</button></div>
+    </div>
+    <div>
+      <h4 class="sec-title">预览</h4>
+      <div id="preview" class="pre-box"><div class="empty">点击「生成预览」后在此显示</div></div>
+      <div class="form-actions"><button class="btn btn-primary" onclick="copyPreview()">复制全文</button></div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if new_mode %}
+<div class="panel">
+  <div class="panel-head"><h3>{{ '编辑模板' if edit_id else '新建模板' }}</h3></div>
+  <form class="form-grid" hx-post="{{ '/api/doctpl/' ~ edit_id ~ '/update' if edit_id else '/api/doctpl/add' }}" hx-target="body" hx-swap="outerHTML">
+    <div class="form-item"><label>模板名称 *</label><input name="name" required value="{{ edit_tpl.name if edit_tpl else '' }}"></div>
+    <div class="form-item"><label>分类</label><select name="category">
+      {% for c in ['JD','通知','offer','证明','制度'] %}
+      <option {{ 'selected' if edit_tpl and edit_tpl.category==c }}>{{ c }}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-item" style="grid-column:1/-1"><label>模板内容（支持 {{变量}} 占位）*</label><textarea name="content" style="min-height:220px" placeholder="例如：兹证明 {{姓名}} 于 {{入职日期}} 入职我司…">{{ edit_tpl.content if edit_tpl else '' }}</textarea></div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">保存模板</button>
+      <a class="btn" href="/docgen">返回</a></div>
+  </form>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+var TEMPLATE = {{ cur.content | tojson if cur else '""' }};
+var EMP = {{ emp | tojson }};
+var VARS = {};
+(function extractVars() {
+  if (!TEMPLATE) return;
+  var re = /\{\{(\w+)\}\}/g, m;
+  while ((m = re.exec(TEMPLATE)) !== null) VARS[m[1]] = '';
+})();
+function empVar(k) {
+  var map = {姓名:'name', 部门:'department', 岗位:'position', 入职日期:'hire_date',
+             试用期到期日:'probation_end', 性别:'gender', 身份证号:'id_card', 学历:'education'};
+  return map[k] ? (EMP && EMP[map[k]] ? EMP[map[k]] : '') : '';
+}
+(function buildForm() {
+  var box = document.getElementById('varFields');
+  if (!box || !Object.keys(VARS).length) { if(box) box.innerHTML = '<div class="empty">模板无变量</div>'; return; }
+  var html = '';
+  Object.keys(VARS).forEach(function (k) {
+    var v = empVar(k) || '';
+    html += '<div class="form-item"><label>' + k + '</label><input name="' + k + '" value="' + v + '"></div>';
+  });
+  box.innerHTML = html;
+})();
+function previewDoc() {
+  var out = TEMPLATE;
+  document.querySelectorAll('#varFields input').forEach(function (inp) {
+    out = out.split('{{' + inp.name + '}}').join(inp.value);
+  });
+  document.getElementById('preview').textContent = out;
+  document.getElementById('preview').style.whiteSpace = 'pre-wrap';
+}
+function copyPreview() {
+  var el = document.getElementById('preview');
+  if (!el.textContent.trim()) { alert('请先生成预览'); return; }
+  copyText(el.textContent);
+}
+</script>
+{% endblock %}

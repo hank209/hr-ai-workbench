@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block title %}{{ '编辑回复' if r else '新建回复' }} - 人事工作台{% endblock %}
+{% block page_title %}{{ '编辑回复' if r else '新建常用回复' }}{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:820px">
+  <form class="form-grid" hx-post="{{ '/api/reply/' ~ r.id ~ '/update' if r else '/api/reply/add' }}" hx-target="body" hx-swap="outerHTML">
+    <div class="form-item"><label>标题 *</label><input name="title" required value="{{ r.title if r else '' }}" placeholder="如：年假天数说明"></div>
+    <div class="form-item"><label>分类</label>
+      <select name="category">
+        {% for cat in ['考勤假期','薪酬福利','社保公积金','入职离职','报销差旅','其他'] %}
+        <option value="{{ cat }}" {{ 'selected' if r and r.category==cat else '' }}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-item"><label>搜索关键词</label><input name="keywords" value="{{ r.keywords if r else '' }}" placeholder="逗号分隔：年假,年休假,带薪年假"></div>
+    <div class="form-item"><label>快捷编号（可选）</label><input name="shortcut" value="{{ r.shortcut if r else '' }}" placeholder="如 /nj"></div>
+    <div class="form-item" style="grid-column:1/-1"><label>回复内容 *（支持变量：{{ '{{姓名}} {{部门}} {{司龄}} {{年假总额}} {{已休}} {{剩余}}' }}）</label>
+      <textarea name="content" required style="min-height:180px">{{ r.content if r else '' }}</textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">保存</button>
+      <a class="btn" href="/replies">返回</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

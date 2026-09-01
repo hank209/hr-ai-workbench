@@ -1,0 +1,108 @@
+{% extends "layout.html" %}
+{% block title %}合同台账 - 人事工作台{% endblock %}
+{% block page_title %}合同台账与到期提醒{% endblock %}
+{% block content %}
+
+<div class="cards">
+  <div class="card"><div class="label">合同总数</div><div class="num">{{ stats.total }}</div></div>
+  <div class="card"><div class="label">履行中 / 待签</div><div class="num">{{ stats.active }}</div></div>
+  <div class="card"><div class="label">30 天内到期</div><div class="num {{ 'warn' if stats.expire30 else 'ok' }}">{{ stats.expire30 }}</div></div>
+</div>
+
+<div class="danger-note">提示：本看板为规则提醒，不构成法律意见。第 2 次及以上固定期限合同到期前 90 天系统会特别预警「下次应为无固定期限合同」（劳动合同法第 14 条）；连续两次固定期限后劳动者提出时，第 3 次应订立无固定期限合同。</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <h3>紧急：7 天内到期 / 已过期</h3>
+    <a class="btn btn-sm" href="/contract/import">Excel 批量导入</a>
+    <a class="btn btn-sm btn-primary" href="/contract/new">+ 新增合同</a>
+  </div>
+  {% if expiring_7 %}
+  <table>
+    <thead><tr><th>人员</th><th>合同名称</th><th>第几次</th><th>到期日期</th><th>剩余</th><th>试用期</th><th>状态</th><th></th></tr></thead>
+    <tbody>
+    {% for c in expiring_7 %}
+      <tr>
+        <td>{{ c.personnel }}</td><td>{{ c.name }}</td>
+        <td>第{{ c.contract_no }}次</td><td>{{ c.end_date or '无固定' }}</td>
+        <td><span class="badge badge-urgent">{{ (c.end_date - now.date()).days }} 天</span></td>
+        <td class="small">{{ c.probation_end or '-' }}</td>
+        <td>{{ c.status }}</td>
+        <td>
+          <a class="btn btn-sm" href="/contract/{{ c.id }}/edit">编辑</a>
+          <button class="btn btn-sm btn-danger" hx-post="/api/contract/{{ c.id }}/delete" hx-confirm="确定删除 {{ c.personnel }}《{{ c.name }}》吗？" hx-target="body" hx-swap="outerHTML">删除</button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">7 天内没有到期合同，安全。</div>{% endif %}
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h3>8~30 天内到期</h3></div>
+  {% if expiring_30 %}
+  <table>
+    <thead><tr><th>人员</th><th>合同名称</th><th>第几次</th><th>到期日期</th><th>剩余</th><th>状态</th><th></th></tr></thead>
+    <tbody>
+    {% for c in expiring_30 %}
+      <tr>
+        <td>{{ c.personnel }}</td><td>{{ c.name }}</td><td>第{{ c.contract_no }}次</td>
+        <td>{{ c.end_date }}</td>
+        <td><span class="badge badge-high">{{ (c.end_date - now.date()).days }} 天</span></td>
+        <td>{{ c.status }}</td>
+        <td><a class="btn btn-sm" href="/contract/{{ c.id }}/edit">编辑</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">30 天内无到期合同。</div>{% endif %}
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h3>31~60 天内到期</h3></div>
+  {% if expiring_60 %}
+  <table>
+    <thead><tr><th>人员</th><th>合同名称</th><th>第几次</th><th>到期日期</th><th>剩余</th><th>状态</th><th></th></tr></thead>
+    <tbody>
+    {% for c in expiring_60 %}
+      <tr>
+        <td>{{ c.personnel }}</td><td>{{ c.name }}</td><td>第{{ c.contract_no }}次</td>
+        <td>{{ c.end_date }}</td>
+        <td><span class="badge badge-medium">{{ (c.end_date - now.date()).days }} 天</span></td>
+        <td>{{ c.status }}</td>
+        <td><a class="btn btn-sm" href="/contract/{{ c.id }}/edit">编辑</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">60 天内无其他到期合同。</div>{% endif %}
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h3>全部合同（{{ contracts|length }}）</h3></div>
+  {% if contracts %}
+  <table>
+    <thead><tr><th>人员</th><th>合同名称</th><th>第几次</th><th>期限</th><th>到期日期</th><th>试用期</th><th>状态</th><th></th></tr></thead>
+    <tbody>
+    {% for c in contracts %}
+      <tr>
+        <td>{{ c.personnel }}</td><td>{{ c.name }}</td><td>第{{ c.contract_no }}次</td>
+        <td class="small">{{ c.start_date or '-' }} ~ {{ c.end_date or '无固定期限' }}</td>
+        <td>{{ c.end_date or '无固定' }}</td>
+        <td class="small">{{ c.probation_start or '-' }} ~ {{ c.probation_end or '-' }}</td>
+        <td>{{ c.status }}</td>
+        <td>
+          <a class="btn btn-sm" href="/contract/{{ c.id }}/edit">编辑</a>
+          <button class="btn btn-sm btn-danger" hx-post="/api/contract/{{ c.id }}/delete" hx-confirm="确定删除 {{ c.personnel }}《{{ c.name }}》吗？" hx-target="body" hx-swap="outerHTML">删除</button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">还没有合同记录。点右上角「Excel 批量导入」把现有台账搬进来（提供模板），或「+ 新增合同」手工添加。</div>
+  {% endif %}
+</div>
+
+{% endblock %}

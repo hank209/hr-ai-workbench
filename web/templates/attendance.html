@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+{% block title %}考勤异常 - 人事工作台{% endblock %}
+{% block page_title %}考勤异常批处理{% endblock %}
+{% block content %}
+
+<div class="panel">
+  <div class="panel-head"><h3>导入考勤异常（Excel）</h3></div>
+  <div class="warn-note">从考勤系统导出异常名单后，用本模块模板整理导入。支持按「异常类型」分组、「月度」筛选，批量勾选处理。</div>
+  <div class="row-gap">
+    <a class="btn" href="/api/attendance/template">下载导入模板</a>
+    <form style="display:inline" hx-post="/api/attendance/import" hx-target="body" hx-swap="outerHTML" enctype="multipart/form-data">
+      <input type="file" name="file" accept=".xlsx" style="display:none" id="attFile" onchange="this.form.requestSubmit()">
+      <button class="btn btn-primary" type="button" onclick="document.getElementById('attFile').click()">选择 Excel 导入</button>
+    </form>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card"><div class="label">本月待确认</div><div class="num {{ 'warn' if by_status['待确认'] else 'ok' }}">{{ by_status['待确认'] }}</div></div>
+  <div class="card"><div class="label">已确认</div><div class="num">{{ by_status['已确认'] }}</div></div>
+  <div class="card"><div class="label">已处理</div><div class="num">{{ by_status['已处理'] }}</div></div>
+  <div class="card"><div class="label">类型分布</div><div class="num small-num">{% for k,v in summary.items() %}{{ k }} {{ v }} {% endfor %}</div></div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <h3>异常明细</h3>
+    <div class="row-gap">
+      <select class="input" style="width:160px" onchange="location.href='/attendance?month='+this.value">
+        <option value="">全部月份</option>
+        {% for m in months %}
+        <option value="{{ m }}" {{ 'selected' if month==m else '' }}>{{ m }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn" onclick="toggleAll()">全选</button>
+      <form style="display:inline" hx-post="/api/attendance/batch" hx-target="body" hx-swap="outerHTML">
+        <input type="hidden" name="ids" id="batchIds">
+        <select name="status"><option>已处理</option><option>已确认</option></select>
+        <input name="handler_note" placeholder="处理备注">
+        <button class="btn btn-primary" type="submit">批量处理所选</button>
+      </form>
+    </div>
+  </div>
+
+  {% if items %}
+  <table>
+    <thead><tr><th style="width:36px"></th><th>姓名</th><th>月份</th><th>日期</th><th>类型</th><th>原因</th><th>状态</th><th>处理备注</th><th></th></tr></thead>
+    <tbody id="attRows">
+    {% for a in items %}
+      <tr>
+        <td><input type="checkbox" class="att-check" value="{{ a.id }}"></td>
+        <td>{{ a.emp_name }}</td><td>{{ a.month }}</td><td>{{ a.exception_date or '-' }}</td>
+        <td><span class="badge badge-{{ 'danger' if a.exception_type in ('缺卡','早退') else 'medium' }}">{{ a.exception_type }}</span></td>
+        <td>{{ a.reason or '-' }}</td>
+        <td><span class="badge {{ 'badge-success' if a.status=='已处理' else ('badge-medium' if a.status=='已确认' else 'badge-danger') }}">{{ a.status }}</span></td>
+        <td class="small muted">{{ a.handler_note or '' }}</td>
+        <td><button class="btn btn-sm" hx-post="/api/attendance/{{ a.id }}/delete" hx-confirm="删除？" hx-target="body" hx-swap="outerHTML">删</button></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">暂无异常记录。下载模板整理后导入。</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function toggleAll() {
+  var boxes = document.querySelectorAll('.att-check');
+  var all = Array.from(boxes).every(b => b.checked);
+  boxes.forEach(b => b.checked = !all);
+  syncIds();
+}
+function syncIds() {
+  var ids = Array.from(document.querySelectorAll('.att-check:checked')).map(b => b.value).join(',');
+  document.getElementById('batchIds').value = ids;
+}
+document.addEventListener('change', function (e) {
+  if (e.target.classList && e.target.classList.contains('att-check')) syncIds();
+});
+</script>
+{% endblock %}

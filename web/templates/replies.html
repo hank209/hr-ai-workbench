@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% block title %}常用回复 - 人事工作台{% endblock %}
+{% block page_title %}常用回复（一键复制）{% endblock %}
+{% block content %}
+
+{% if err == 'dup_shortcut' %}
+<div class="alert success" style="background:var(--danger-50);border:1px solid var(--danger-100);color:var(--danger-700);">快捷编号已被占用，请换一个（留空则不校验）。</div>
+{% endif %}
+
+<div class="panel">
+  <div class="panel-head">
+    <h3>快速回复库：搜索 → 一键复制 → 粘贴发送</h3>
+    <a class="btn btn-sm btn-primary" href="/replies/new">+ 新建回复</a>
+  </div>
+  <div class="search-row">
+    <input id="replySearch" placeholder="输入关键词搜索，如：年假 / 公积金 / 离职 / /nj 快捷编号" oninput="filterReplies('全部')">
+  </div>
+  <div class="tabs">
+    <span class="tab on" onclick="switchTab(this,'全部')">全部</span>
+    {% for cat in categories %}
+    <span class="tab" onclick="switchTab(this,'{{ cat }}')">{{ cat }}</span>
+    {% endfor %}
+  </div>
+  <div class="reply-grid">
+    {% for r in replies %}
+    <div class="reply-card" data-cat="{{ r.category }}" data-title="{{ r.title }}" data-kw="{{ r.keywords }} {{ r.shortcut }}" data-content="{{ r.content }}">
+      <div class="rc-head">
+        <span class="rc-title">{{ r.title }}</span>
+        <span class="badge badge-medium">{{ r.category }}</span>
+      </div>
+      <div class="rc-meta">
+        <span>使用 {{ r.usage_count }} 次</span>
+        {% if r.shortcut %}<span class="muted">快捷 {{ r.shortcut }}</span>{% endif %}
+      </div>
+      <div class="rc-content">{{ r.content }}</div>
+      <div class="rc-actions">
+        <button class="btn btn-sm btn-primary" onclick="copyText(document.getElementById('rc-{{ r.id }}').textContent, {{ r.id }})">复制</button>
+        <a class="btn btn-sm" href="/replies/{{ r.id }}/edit">编辑</a>
+        <button class="btn btn-sm btn-danger" hx-post="/api/reply/{{ r.id }}/delete" hx-confirm="删除这条回复？" hx-target="body" hx-swap="outerHTML">删除</button>
+      </div>
+      <div id="rc-{{ r.id }}" style="display:none">{{ r.content }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function switchTab(el, cat) {
+  document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('on'); });
+  el.classList.add('on');
+  filterReplies(cat);
+}
+</script>
+{% endblock %}
